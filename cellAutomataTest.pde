@@ -31,6 +31,10 @@ int ruleSelector;
 int opacity = 255;
 int distortion = 0;
 
+boolean visible_back = false;
+boolean ascii = false;
+boolean sqrtMuta = false;
+
 //cyclic rule
 int tresh = 3;
 int range = 2;
@@ -61,8 +65,7 @@ CheckBox neighbors;
 RadioButton rules;
 int sliderLength = 200;
 boolean visible = true;
-boolean visible_back = false;
-boolean ascii = false;
+
 
 void setup() {
   println(moore);
@@ -147,7 +150,7 @@ void updateMatrix() {
     break;
   }
   
-  //squareMutation(13, (int)random(1,20), 700);
+  if (sqrtMuta) squareMutation(13, (int)random(1,20), 700);
   for(int i = 0; i < cols; i++) {
     
     for(int j = 0; j < rows; j++) {
@@ -373,6 +376,11 @@ void controlEvent(ControlEvent theControlEvent) {
   if (theControlEvent.isFrom("stateSpeed")) {
     
     stateSpeed = !stateSpeed;
+    }
+    
+  if (theControlEvent.isFrom("sqrtMuta")) {
+    
+    sqrtMuta = !sqrtMuta;
     }
   
   if (theControlEvent.isFrom("ruleSelector")) {

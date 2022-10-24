@@ -70,6 +70,13 @@ void setUI() {
       .addItem("ascii", 0)
       .setGroup(GLOBAL);
       
+  neighbors = cp5.addCheckBox("sqrtMuta")
+      .setValue(0)
+      .setSize(20,20)
+      .setPosition(100, 120)
+      .addItem("sqrtMuta", 0)
+      .setGroup(GLOBAL);
+      
   //cyclic control
   int cyclicGrpX = 20;
   int cyclicGrpY = 185;
