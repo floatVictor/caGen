@@ -1,10 +1,18 @@
+/*
+note : 
+enregistrer set de parametres
+text inside UI
+*/
+
 //lib setup
 import controlP5.*;
 
 //global var
 PGraphics pg;
 
-int resolution = 2;
+boolean play = true;
+
+int resolution = 3;
 int sizeX = 1600;
 int sizeY = 900;
 int generation = 0;
@@ -14,30 +22,38 @@ int rows = (int)(sizeY / resolution);
 Cell[][] matrix = new Cell[cols][rows];
 int[][] matrixTemp = new int[cols][rows];
 
-int nbRules = 2;
+int nbRules = 3;
 int[] ruleTrig = new int[nbRules];
 
-int nbStates = 14;
+int nbStates = 12;
 int ruleSelector;
 
-int opacity = 25;
-int distortion = 10;
+int opacity = 255;
+int distortion = 0;
 
-//cyclic var
+//cyclic rule
 int tresh = 3;
 int range = 2;
 boolean moore = false;
 
-//extendedRange
-int rangeExtended = 3;
+//extended rule
+int rangeExtended = 2;
 int increment = 3;
+
+//plasma rule
+float plasmaRatio = 3.5;
+float plasmaSpeed = 0.3;
+boolean stateSpeed = false;
 
 //color
 int colorNumber = nbStates;
 color[] palette = new color[colorNumber];
 int saturationOffset = 0;
-int hueOffset = 0;
-int brightnessOffset = 0;
+int hueOffset = 33;
+int brightnessOffset = -15;
+int saturationOffset2 = -255;
+int hueOffset2 = -178;
+int brightnessOffset2 = -53;
 
 //UI
 ControlP5 cp5;
@@ -45,9 +61,11 @@ CheckBox neighbors;
 RadioButton rules;
 int sliderLength = 200;
 boolean visible = true;
+boolean visible_back = false;
+boolean ascii = false;
 
 void setup() {
-  
+  println(moore);
   colorMode(HSB);
   background(0);
   size(1080, 720);
@@ -65,27 +83,31 @@ void setup() {
 }
 
 void draw() {
-  
   for (int i = 0; i < nbRules; i++) {
     if (ruleTrig[i] == 1) ruleSelector = i;
   }
 
   
   pg.beginDraw();
-  displayMatrix();
-  
-  updateMatrix();
+  if(play) {
+    if(visible_back) pg.background(0);
+    displayMatrix();
+    updateMatrix();
+    generation ++;
+  }
   pg.endDraw();
   image(pg, 0, 0); 
   
   if(!visible) cp5.hide();
   else cp5.show();
   cp5.draw();
-  generation ++;
 }
 
 void setupMatrix() {
   
+  cols = (int)(sizeX / resolution);
+  rows = (int)(sizeY / resolution);
+  matrix = new Cell[cols][rows];
   noiseSeed((long)random(10000));
   for (int i = 0; i < cols; i++) {
     
@@ -114,15 +136,18 @@ void updateMatrix() {
   matrixTemp = new int[cols][rows];
   
   switch(ruleSelector) {
-  case 0: 
+  case 0 : 
     cyclicRules();
     break;
-  case 1: 
+  case 1 : 
     extendedRangeRule();
+    break;
+  case 2 : 
+    plasmaRule();
     break;
   }
   
-  squareMutation(13, (int)random(1,20), 700);
+  //squareMutation(13, (int)random(1,20), 700);
   for(int i = 0; i < cols; i++) {
     
     for(int j = 0; j < rows; j++) {
@@ -132,6 +157,7 @@ void updateMatrix() {
   }
 }
 
+//neighbors function
 int countNeighbors(Cell[][] matrix, int x, int y) {
  
   int sum = 0;
@@ -189,6 +215,63 @@ int averageNeighbors(Cell[][] matrix, int x, int y, int range) {
   return average;
 }
 
+int noiseNeighbors(Cell[][] matrix,int x, int y) {
+  
+  int i = 0;
+  int j = 0;
+  int index;
+  if(stateSpeed) {
+    
+    if (!moore) {index = int(map(noise(x * plasmaRatio * 0.001, y * plasmaRatio * 0.001, (matrix[x][y].state + generation) * plasmaSpeed * .1), 0, 1, 0, 3));}
+    else index = int(map(noise(x * plasmaRatio * 0.001, y * plasmaRatio * 0.001, (matrix[x][y].state + generation) * plasmaSpeed * .1), 0, 1, 0, 7));
+  }
+  else {
+    
+    if (!moore) {index = int(map(noise(x * plasmaRatio * 0.001, y * plasmaRatio * 0.001, generation * plasmaSpeed * .1), 0, 1, 0, 3));}
+    else index = int(map(noise(x * plasmaRatio * 0.001, y * plasmaRatio * 0.001, generation * plasmaSpeed * .1), 0, 1, 0, 7));
+  }
+  switch(index) {
+    
+    case 0 : 
+      i = 0;
+      j = 1;
+      break;     
+    case 1 : 
+      i = 0;
+      j = -1;
+      break;      
+    case 2 : 
+      i = -1;
+      j = 0;
+      break;      
+    case 3 : 
+      i = 1;
+      j = 0;
+      break;     
+    case 4 : 
+      i = 1;
+      j = 1;
+      break;      
+    case 5 : 
+      i = 1;
+      j = -1;
+      break;     
+    case 6 : 
+      i = -1;
+      j = 1;
+      break;     
+    case 7 : 
+      i = 1;
+      j = -1;
+      break;
+  }
+  
+  int col = (x + i + cols) % cols;
+  int row = (y + j + rows) % rows;
+  
+  return matrix[col][row].state;
+}
+
 //rules
 
 void cyclicRules() {
@@ -213,6 +296,16 @@ void extendedRangeRule() {
       
      int average = averageNeighbors(matrix, i, j, rangeExtended);
      matrixTemp[i][j] = (average + increment) % nbStates ;
+    }
+  }
+}
+
+void plasmaRule() {
+  for(int i = 0; i < cols; i++) {
+    
+    for(int j = 0; j < rows; j++) {
+      
+      matrixTemp[i][j] = noiseNeighbors(matrix, i, j);
     }
   }
 }
@@ -252,6 +345,11 @@ void controlEvent(ControlEvent theControlEvent) {
       setupMatrix();
     }
     
+  if (theControlEvent.isFrom("back")) {
+    
+    visible_back = !visible_back;
+    }  
+    
   if (theControlEvent.isFrom("gen palette")) {
     
       palette = genPalette(colorNumber);
@@ -264,12 +362,22 @@ void controlEvent(ControlEvent theControlEvent) {
     
   if (theControlEvent.isFrom("Moore")) {
     
-    if ((int)neighbors.getArrayValue()[0] == 0) moore = false;
-    else moore = true;
+    moore = !moore;
+    }
+    
+  if (theControlEvent.isFrom("ascii")) {
+    
+    ascii = !ascii;
+    }
+    
+  if (theControlEvent.isFrom("stateSpeed")) {
+    
+    stateSpeed = !stateSpeed;
     }
   
   if (theControlEvent.isFrom("ruleSelector")) {
     
+    print("yo");
     ruleTrig = new int[nbRules];
     for (int i = 0; i < rules.getArrayValue().length; i++) {
       
@@ -299,8 +407,6 @@ void keyPressed() {
   if (key == 'c') setupMatrix();
   if (key == 's') saveFrame("saveFrame/ca-#####.png");
   if (key == 'f') print("f");
-  if (key == 'h') {
-    if(!visible) visible = true;
-    else visible = false;
-  }
+  if (key == 'h') visible = !visible;
+  if (key == ' ') play = !play;
 }
